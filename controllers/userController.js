@@ -1459,7 +1459,7 @@ exports.updateUser = async (req, res) => {
                     message = await handleAcceptProcess(req, userData, dbUserData);
                 }
             } else if (dbUserData.doc_verification == 3) { // Reject case
-                if (userData.doc_verification !== dbUserData.doc_verification) {
+                if (userData.doc_verification != dbUserData.doc_verification) {
                     message = await handleRejectProcess(req, userData, dbUserData);
                 }
             }
