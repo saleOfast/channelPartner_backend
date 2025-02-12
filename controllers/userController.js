@@ -2813,10 +2813,11 @@ exports.resendEmailToPendingUser = async (req, res) => {
         let { user_id } = req.body;
 
         let dbUserData = await req.config.users.findOne({ where: { user_id: user_id } });
-
+        let clientDBUser = await db.clients.findOne({ where: { user_code: dbUserData.user_code, }, });
         let option = {};
         if (dbUserData.role_id === 1) {
             await dbUserData.update({ doc_verification: 0 })
+            await clientDBUser.update({ doc_verification: 0 })
             let registrationToken = jwt.sign(
                 { id: dbUserData.user_id, db_name: req.user.db_name },
                 process.env.CLIENT_SECRET,
