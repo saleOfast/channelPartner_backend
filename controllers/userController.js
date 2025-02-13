@@ -591,204 +591,205 @@ exports.getAllUserByRole = async (req, res) => {
         return await responseError(req, res, "Something Went Wrong");
     }
 };
-exports.getUsersByRoleID = async (req, res) => {
-    try {
-        let whereClause = {};
-        if (req.query.f_date) {
-            whereClause.createdAt = {
-                [Op.gte]: req.query.f_date, // Greater than or equal to current date at midnight
-                [Op.lt]: req.query.t_date// Less than current date + 1 day at midnight
-            }
 
-        } else {
-            let weekStartDate = getCurrentWeekStartDate();
-            let weekEndDate = getCurrentWeekEndDate();
-            whereClause.createdAt = {
-                [Op.gte]: weekStartDate, // Greater than or equal to current date at midnight
-                [Op.lt]: weekEndDate// Less than current date + 1 day at midnight
-            }
-        }
+// exports.getUsersByRoleID = async (req, res) => {
+//     try {
+//         let whereClause = {};
+//         if (req.query.f_date) {
+//             whereClause.createdAt = {
+//                 [Op.gte]: req.query.f_date, // Greater than or equal to current date at midnight
+//                 [Op.lt]: req.query.t_date// Less than current date + 1 day at midnight
+//             }
 
-        if (req.user.role_id == 2 || req.user.role_id == 3) {
-            whereClause.report_to = req.user.user_id
-        }
+//         } else {
+//             let weekStartDate = getCurrentWeekStartDate();
+//             let weekEndDate = getCurrentWeekEndDate();
+//             whereClause.createdAt = {
+//                 [Op.gte]: weekStartDate, // Greater than or equal to current date at midnight
+//                 [Op.lt]: weekEndDate// Less than current date + 1 day at midnight
+//             }
+//         }
 
-        if (req.query.role_id == 1 && req.user.role_id == 3) {
-            const bstUser = await req.config.users.findAll({
-                where: { report_to: req.user.user_id, role_id: 2 },
-                attributes: ['user_id']
-            });
+//         if (req.user.role_id == 2 || req.user.role_id == 3) {
+//             whereClause.report_to = req.user.user_id
+//         }
 
-            const bstUserIds = bstUser.map(user => user.user_id);
+//         if (req.query.role_id == 1 && req.user.role_id == 3) {
+//             const bstUser = await req.config.users.findAll({
+//                 where: { report_to: req.user.user_id, role_id: 2 },
+//                 attributes: ['user_id']
+//             });
 
-            if (bstUserIds.length > 0) {
-                whereClause.report_to = {
-                    [Op.in]: bstUserIds
-                };
-            } else {
-                whereClause.report_to = [];
-            }
-        }
+//             const bstUserIds = bstUser.map(user => user.user_id);
 
-        let roleId = req.query.role_id;
+//             if (bstUserIds.length > 0) {
+//                 whereClause.report_to = {
+//                     [Op.in]: bstUserIds
+//                 };
+//             } else {
+//                 whereClause.report_to = [];
+//             }
+//         }
 
-        // Adjust the where clause for admin or role-specific users
-        let userWhereClause = { doc_verification: 2 };
-        if (req.query.role_id == 1) {
-            userWhereClause.role_id = roleId;
-        } else if (req.query.role_id == 2) {
-            // Admin: fetch managers (role_id=2) and their assigned users (role_id=1)
-            userWhereClause.role_id = { [Op.in]: [1, 2] };
-        } else if (req.query.role_id == 3) {
-            userWhereClause.role_id = { [Op.in]: [1, 2, 3] };
-        }
+//         let roleId = req.query.role_id;
 
-        let userData = await req.config.users.findAll({
-            where: {
-                ...whereClause,
-                ...userWhereClause
-            },
-            attributes: [
-                "user_id", "user", "user_code", "createdAt", "report_to", "organisation", "user_l_name", "email", "contact_number", "organisation", "db_name", "isDB", "user_status", "doc_verification", "reject_reason", "role_id", "address", "pincode", "cpt_id",
-                [req.config.sequelize.fn('COUNT', req.config.sequelize.fn('DISTINCT', req.config.sequelize.col('db_leads.lead_id'))), 'lead_count'],
-                [req.config.sequelize.fn('COUNT', req.config.sequelize.fn('DISTINCT', req.config.sequelize.col('db_leads->visitList.visit_id'))), 'visit_count'],
-                [req.config.sequelize.fn('COUNT', req.config.sequelize.fn('DISTINCT', req.config.sequelize.col('db_leads->BookingLeadList.booking_id'))), 'booking_count']
-            ],
-            include: [
-                {
-                    model: req.config.users,
-                    as: 'reportToUser', // Manager data
-                    attributes: ['user_id', 'user'],
-                },
-                {
-                    model: req.config.usersProfiles,
-                    include: [
-                        {
-                            model: req.config.departments,
-                            attributes: {
-                                exclude: ["createdAt", "updatedAt", "deletedAt"],
-                            },
-                        },
-                        {
-                            model: req.config.designations,
-                            attributes: {
-                                exclude: ["createdAt", "updatedAt", "deletedAt"],
-                            },
-                        },
-                    ],
-                },
-                {
-                    model: req.config.leads,
-                    attributes: [],
-                    include: [
-                        { model: req.config.leadVisit, as: 'visitList', attributes: [] },
-                        { model: req.config.leadBooking, as: 'BookingLeadList', attributes: [] },
-                    ],
-                },
-            ],
-            group: ['report_to', 'user_id'], // Group users by manager (`report_to`)
-            order: [["report_to", "ASC"], ["user_id", "DESC"]],
-        });
+//         // Adjust the where clause for admin or role-specific users
+//         let userWhereClause = { doc_verification: 2 };
+//         if (req.query.role_id == 1) {
+//             userWhereClause.role_id = roleId;
+//         } else if (req.query.role_id == 2) {
+//             // Admin: fetch managers (role_id=2) and their assigned users (role_id=1)
+//             userWhereClause.role_id = { [Op.in]: [1, 2] };
+//         } else if (req.query.role_id == 3) {
+//             userWhereClause.role_id = { [Op.in]: [1, 2, 3] };
+//         }
 
-        const result = await req.config.channelPartnerLeads.findAll({
-            attributes: [
-                'asssigned_to',
-                [req.config.sequelize.fn('COUNT', req.config.sequelize.col('cpl_id')), 'cp_lead_count']
-            ],
-            group: ['asssigned_to'],
-            order: [["asssigned_to", "DESC"]],
-            raw: true,
-        });
+//         let userData = await req.config.users.findAll({
+//             where: {
+//                 ...whereClause,
+//                 ...userWhereClause
+//             },
+//             attributes: [
+//                 "user_id", "user", "user_code", "createdAt", "report_to", "organisation", "user_l_name", "email", "contact_number", "organisation", "db_name", "isDB", "user_status", "doc_verification", "reject_reason", "role_id", "address", "pincode", "cpt_id",
+//                 [req.config.sequelize.fn('COUNT', req.config.sequelize.fn('DISTINCT', req.config.sequelize.col('db_leads.lead_id'))), 'lead_count'],
+//                 [req.config.sequelize.fn('COUNT', req.config.sequelize.fn('DISTINCT', req.config.sequelize.col('db_leads->visitList.visit_id'))), 'visit_count'],
+//                 [req.config.sequelize.fn('COUNT', req.config.sequelize.fn('DISTINCT', req.config.sequelize.col('db_leads->BookingLeadList.booking_id'))), 'booking_count']
+//             ],
+//             include: [
+//                 {
+//                     model: req.config.users,
+//                     as: 'reportToUser', // Manager data
+//                     attributes: ['user_id', 'user'],
+//                 },
+//                 {
+//                     model: req.config.usersProfiles,
+//                     include: [
+//                         {
+//                             model: req.config.departments,
+//                             attributes: {
+//                                 exclude: ["createdAt", "updatedAt", "deletedAt"],
+//                             },
+//                         },
+//                         {
+//                             model: req.config.designations,
+//                             attributes: {
+//                                 exclude: ["createdAt", "updatedAt", "deletedAt"],
+//                             },
+//                         },
+//                     ],
+//                 },
+//                 {
+//                     model: req.config.leads,
+//                     attributes: [],
+//                     include: [
+//                         { model: req.config.leadVisit, as: 'visitList', attributes: [] },
+//                         { model: req.config.leadBooking, as: 'BookingLeadList', attributes: [] },
+//                     ],
+//                 },
+//             ],
+//             group: ['report_to', 'user_id'], // Group users by manager (`report_to`)
+//             order: [["report_to", "ASC"], ["user_id", "DESC"]],
+//         });
 
-        const resultMap = new Map(result.map(({ asssigned_to, cp_lead_count }) => [asssigned_to, cp_lead_count]));
+//         const result = await req.config.channelPartnerLeads.findAll({
+//             attributes: [
+//                 'asssigned_to',
+//                 [req.config.sequelize.fn('COUNT', req.config.sequelize.col('cpl_id')), 'cp_lead_count']
+//             ],
+//             group: ['asssigned_to'],
+//             order: [["asssigned_to", "DESC"]],
+//             raw: true,
+//         });
 
-        userData = userData.map((user) => {
-            const cp_lead_count = resultMap.get(user.user_id) || 0;
-            return { ...user.dataValues, cp_lead_count };
-        });
+//         const resultMap = new Map(result.map(({ asssigned_to, cp_lead_count }) => [asssigned_to, cp_lead_count]));
 
-        // if (roleId == "3") { // Director
-        //     // Get all directors
-        //     const directors = userData
-        //         .filter(user => user.dataValues.role_id === 3)
-        //         .map(director => director.get({ plain: true })); // Convert to plain object
+//         userData = userData.map((user) => {
+//             const cp_lead_count = resultMap.get(user.user_id) || 0;
+//             return { ...user.dataValues, cp_lead_count };
+//         });
 
-        //     // Extract all director user IDs
-        //     const directorUserIds = directors.map(director => director.user_id);
+//         // if (roleId == "3") { // Director
+//         //     // Get all directors
+//         //     const directors = userData
+//         //         .filter(user => user.dataValues.role_id === 3)
+//         //         .map(director => director.get({ plain: true })); // Convert to plain object
 
-        //     // Fetch all managers reporting to these directors from the database
-        //     const assignedManagers = await req.config.users.findAll({
-        //         where: {
-        //             report_to: { [Op.in]: directorUserIds },
-        //             role_id: 2, // Ensure only managers are fetched
-        //         },
-        //         attributes: ['user_id', 'user', 'user_l_name', 'report_to']
-        //     });
+//         //     // Extract all director user IDs
+//         //     const directorUserIds = directors.map(director => director.user_id);
 
-        //     const plainAssignedManagers = assignedManagers.map(manager => manager.get({ plain: true }));
+//         //     // Fetch all managers reporting to these directors from the database
+//         //     const assignedManagers = await req.config.users.findAll({
+//         //         where: {
+//         //             report_to: { [Op.in]: directorUserIds },
+//         //             role_id: 2, // Ensure only managers are fetched
+//         //         },
+//         //         attributes: ['user_id', 'user', 'user_l_name', 'report_to']
+//         //     });
 
-        //     // Process director data
-        //     const directorData = directors.map(director => {
-        //         // Filter managers reporting to the current director
-        //         const managersForDirector = plainAssignedManagers.filter(manager => manager.report_to === director.user_id);
-        //         console.log({ managersForDirector })
-        //         // Process each manager to fetch their assigned users
-        //         const managersWithUsers = managersForDirector.map(manager => {
-        //             const assignedUsers = userData
-        //                 .filter(user => ((user?.dataValues?.report_to == manager?.user_id) || (user?.report_to == manager?.user_id)) )
-        //                 .map(user => user.get({ plain: true })); // Convert to plain object
-        //             console.log({ assignedUsers, userData })
+//         //     const plainAssignedManagers = assignedManagers.map(manager => manager.get({ plain: true }));
 
-        //             return {
-        //                 ...manager,
-        //                 assigned_users: assignedUsers,
-        //                 lead_count: assignedUsers.length,
-        //                 visit_count: assignedUsers.reduce((sum, user) => sum + Number(user.visit_count || 0), 0),
-        //                 booking_count: assignedUsers.reduce((sum, user) => sum + Number(user.booking_count || 0), 0),
-        //             };
-        //         });
+//         //     // Process director data
+//         //     const directorData = directors.map(director => {
+//         //         // Filter managers reporting to the current director
+//         //         const managersForDirector = plainAssignedManagers.filter(manager => manager.report_to === director.user_id);
+//         //         console.log({ managersForDirector })
+//         //         // Process each manager to fetch their assigned users
+//         //         const managersWithUsers = managersForDirector.map(manager => {
+//         //             const assignedUsers = userData
+//         //                 .filter(user => ((user?.dataValues?.report_to == manager?.user_id) || (user?.report_to == manager?.user_id)) )
+//         //                 .map(user => user.get({ plain: true })); // Convert to plain object
+//         //             console.log({ assignedUsers, userData })
 
-        //         return {
-        //             ...director,
-        //             assigned_managers: managersWithUsers,
-        //             lead_count: managersWithUsers.reduce((sum, manager) => sum + manager.lead_count, 0),
-        //             visit_count: managersWithUsers.reduce((sum, manager) => sum + manager.visit_count, 0),
-        //             booking_count: managersWithUsers.reduce((sum, manager) => sum + manager.booking_count, 0),
-        //         };
-        //     });
+//         //             return {
+//         //                 ...manager,
+//         //                 assigned_users: assignedUsers,
+//         //                 lead_count: assignedUsers.length,
+//         //                 visit_count: assignedUsers.reduce((sum, user) => sum + Number(user.visit_count || 0), 0),
+//         //                 booking_count: assignedUsers.reduce((sum, user) => sum + Number(user.booking_count || 0), 0),
+//         //             };
+//         //         });
 
-        //     return await responseSuccess(req, res, "Director-wise Data", directorData);
-        // }
-        // else if (roleId == "2") { // Manager
-        //     const managers = userData
-        //         .filter(user => (user?.dataValues?.role_id === 2) || (user?.role_id === 2))
-        //         .map(manager => manager.get({ plain: true })); // Convert to plain object
+//         //         return {
+//         //             ...director,
+//         //             assigned_managers: managersWithUsers,
+//         //             lead_count: managersWithUsers.reduce((sum, manager) => sum + manager.lead_count, 0),
+//         //             visit_count: managersWithUsers.reduce((sum, manager) => sum + manager.visit_count, 0),
+//         //             booking_count: managersWithUsers.reduce((sum, manager) => sum + manager.booking_count, 0),
+//         //         };
+//         //     });
 
-        //     const managerData = managers.map(manager => {
-        //         const assignedUsers = userData
-        //             .filter(user => user.dataValues.report_to === manager.user_id)
-        //             .map(user => user.get({ plain: true })); // Convert to plain object
+//         //     return await responseSuccess(req, res, "Director-wise Data", directorData);
+//         // }
+//         // else if (roleId == "2") { // Manager
+//         //     const managers = userData
+//         //         .filter(user => (user?.dataValues?.role_id === 2) || (user?.role_id === 2))
+//         //         .map(manager => manager.get({ plain: true })); // Convert to plain object
 
-        //         return {
-        //             ...manager,
-        //             assigned_users: assignedUsers,
-        //             lead_count: assignedUsers.length,
-        //             visit_count: assignedUsers.reduce((sum, user) => sum + Number(user.visit_count || 0), 0),
-        //             booking_count: assignedUsers.reduce((sum, user) => sum + Number(user.booking_count || 0), 0),
-        //         };
-        //     });
+//         //     const managerData = managers.map(manager => {
+//         //         const assignedUsers = userData
+//         //             .filter(user => user.dataValues.report_to === manager.user_id)
+//         //             .map(user => user.get({ plain: true })); // Convert to plain object
 
-        //     return await responseSuccess(req, res, "Manager-wise Data", managerData);
-        // }
+//         //         return {
+//         //             ...manager,
+//         //             assigned_users: assignedUsers,
+//         //             lead_count: assignedUsers.length,
+//         //             visit_count: assignedUsers.reduce((sum, user) => sum + Number(user.visit_count || 0), 0),
+//         //             booking_count: assignedUsers.reduce((sum, user) => sum + Number(user.booking_count || 0), 0),
+//         //         };
+//         //     });
 
-        // Return user data for other roles or admin
-        return await responseSuccess(req, res, "Role-wise Data", userData);
-    } catch (error) {
-        logErrorToFile(error);
-        console.log("error", error);
-        return await responseError(req, res, "Something Went Wrong");
-    }
-};
+//         //     return await responseSuccess(req, res, "Manager-wise Data", managerData);
+//         // }
+
+//         // Return user data for other roles or admin
+//         return await responseSuccess(req, res, "Role-wise Data", userData);
+//     } catch (error) {
+//         logErrorToFile(error);
+//         console.log("error", error);
+//         return await responseError(req, res, "Something Went Wrong");
+//     }
+// };
 
 // exports.getUsersByRoleID = async (req, res) => {
 //     try {
@@ -926,6 +927,159 @@ exports.getUsersByRoleID = async (req, res) => {
 //         return await responseError(req, res, "Something Went Wrong");
 //     }
 // };
+
+exports.getUsersByRoleID = async (req, res) => {
+    try {
+        let whereClause = {}
+        if (req.query.f_date) {
+            whereClause.createdAt = {
+                [Op.gte]: req.query.f_date, // Greater than or equal to current date at midnight
+                [Op.lt]: req.query.t_date// Less than current date + 1 day at midnight
+            }
+
+        } else {
+            let weekStartDate = getCurrentWeekStartDate();
+            let weekEndDate = getCurrentWeekEndDate();
+            whereClause.createdAt = {
+                [Op.gte]: weekStartDate, // Greater than or equal to current date at midnight
+                [Op.lt]: weekEndDate// Less than current date + 1 day at midnight
+            }
+        }
+
+        if (req.user.role_id == 2 || req.user.role_id == 3) {
+            whereClause.report_to = req.user.user_id
+        }
+
+        if (req.query.role_id == 1 && req.user.role_id == 3) {
+            const bstUser = await req.config.users.findAll({
+                where: { report_to: req.user.user_id, role_id: 2 },
+                attributes: ['user_id']
+            });
+
+            const bstUserIds = bstUser.map(user => user.user_id);
+
+            if (bstUserIds.length > 0) {
+                whereClause.report_to = {
+                    [Op.in]: bstUserIds
+                };
+            } else {
+                whereClause.report_to = [];
+            }
+        }
+
+        let userData = await req.config.users.findAll({
+            where: {
+                ...whereClause,
+                role_id: req.query.role_id,
+                doc_verification: 2,
+            },
+            attributes: ["user_id", "user", "user_code", "createdAt", "report_to", "organisation", "user_l_name", "email", "contact_number", "organisation", "db_name", "isDB", "user_status", "doc_verification", "reject_reason", "role_id", "address", "pincode", "cpt_id",
+                [req.config.sequelize.fn('COUNT', req.config.sequelize.fn('DISTINCT', req.config.sequelize.col('db_leads.lead_id'))), 'lead_count'],
+                [req.config.sequelize.fn('COUNT', req.config.sequelize.fn('DISTINCT', req.config.sequelize.col('db_leads->visitList.visit_id'))), 'visit_count'],
+                [req.config.sequelize.fn('COUNT', req.config.sequelize.fn('DISTINCT', req.config.sequelize.col('db_leads->BookingLeadList.booking_id'))), 'booking_count'],
+            ],
+            include: [
+                {
+                    model: req.config.usersProfiles,
+                    include: [
+                        {
+                            model: req.config.divisions,
+                            attributes: {
+                                exclude: ["createdAt", "updatedAt", "deletedAt"],
+                            },
+                        },
+                        {
+                            model: req.config.departments,
+                            attributes: {
+                                exclude: ["createdAt", "updatedAt", "deletedAt"],
+                            },
+                        },
+                        {
+                            model: req.config.designations,
+                            attributes: {
+                                exclude: ["createdAt", "updatedAt", "deletedAt"],
+                            },
+                        },
+                    ],
+                },
+                {
+                    model: req.config.user_role,
+                    attributes: {
+                        exclude: ["createdAt", "updatedAt", "deletedAt"],
+                    },
+                },
+                {
+                    model: req.config.country,
+                    attributes: {
+                        exclude: ["createdAt", "updatedAt", "deletedAt"],
+                    },
+                },
+                {
+                    model: req.config.states,
+                    attributes: {
+                        exclude: ["createdAt", "updatedAt", "deletedAt"],
+                    },
+                },
+                {
+                    model: req.config.city,
+                    attributes: {
+                        exclude: ["createdAt", "updatedAt", "deletedAt"],
+                    },
+                },
+                {
+                    model: req.config.users,
+                    as: 'reportToUser',
+                    attributes: ['user_id', 'user']
+                },
+                {
+                    model: req.config.leads,
+                    attributes: ['lead_id', 'lead_name'],
+
+                    include: [
+                        {
+                            model: req.config.leadVisit,
+                            as: 'visitList',
+                            attributes: ["visit_id",],
+
+                        },
+                        {
+                            model: req.config.leadBooking,
+                            as: 'BookingLeadList',
+                            attributes: ["booking_id",],
+
+                        },
+                    ],
+                    group: ['leadAssignedBy.lead_id'],
+                },
+            ],
+            group: ['user_id'],
+            order: [["user_id", "DESC"]],
+        });
+
+        const result = await req.config.channelPartnerLeads.findAll({
+            attributes: [
+                'asssigned_to',
+                [req.config.sequelize.fn('COUNT', req.config.sequelize.col('cpl_id')), 'cp_lead_count']
+            ],
+            group: ['asssigned_to'],
+            order: [["asssigned_to", "DESC"]],
+            raw: true,
+        });
+
+        const resultMap = new Map(result.map(({ asssigned_to, cp_lead_count }) => [asssigned_to, cp_lead_count]));
+
+        userData = userData.map((user) => {
+            const cp_lead_count = resultMap.get(user.user_id) || 0;
+            return { ...user.dataValues, cp_lead_count };
+        });
+
+        return await responseSuccess(req, res, "Role wise Data", userData);
+    } catch (error) {
+        logErrorToFile(error)
+        console.log("error", error)
+        return await responseError(req, res, "Something Went Wrong");
+    }
+};
 
 exports.deleteUserByID = async (req, res) => {
     try {
