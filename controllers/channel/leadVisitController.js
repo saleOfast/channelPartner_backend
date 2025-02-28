@@ -133,16 +133,16 @@ exports.createLeadVisit = async (req, res) => {
             if (tokenResponse && tokenResponse.access_token) {
 
                 let salesforceData_Leads = JSON.stringify({
-                    "Clead_Full_Name__c": visitData.lead_name,
-                    "Cell_Phone__c": visitData.p_contact_no,
-                    "CP_User_Name__c": req.user.user,
-                    "Email__c": visitData.email_id,
-                    "Pin_Code__c": visitData.pincode,
-                    "Location__c": visitData.address,
+                    "Clead_Full_Name__c": visitData.lead_name || "",
+                    "Cell_Phone__c": visitData.p_contact_no || "",
+                    "CP_User_Name__c": req.user.user || "",
+                    "Email__c": visitData.email_id || "",
+                    "Pin_Code__c": visitData.pincode || "",
+                    "Location__c": visitData.address || "",
                     "Requirement_Type__c": "Residential",
                     "Country_pklst__c": "India",
                     "Registration_Type_pklst__c": "Phone Call",
-                    "Selected_Project_rltn__c": visitData.sales_project_id,
+                    "Selected_Project_rltn__c": visitData.sales_project_id || "",
                     "Is_Created_By_Channel_Partner__c": "true"
                 });
 
@@ -335,13 +335,13 @@ exports.createLeadVisit = async (req, res) => {
 };
 
 async function updateVisitStatuses(req, visitData = [], currentDateTime) {
-    const visitIdsToUpdate =  Array.isArray(visitData) ?
-    visitData.filter(visit => {
+    const visitIdsToUpdate = Array.isArray(visitData) ?
+        visitData.filter(visit => {
             const visitDateTime = moment(`${visit.p_visit_date} ${visit.p_visit_time}`);
             return currentDateTime.isAfter(visitDateTime) && visit.status !== 'Completed';
         })
-        .map(visit => visit.visit_id)
-        :[];
+            .map(visit => visit.visit_id)
+        : [];
 
     if (visitIdsToUpdate.length > 0) {
         // Perform the bulk update
@@ -391,7 +391,7 @@ exports.getleadsVisit = async (req, res) => {
             if (req.user.role_id === 2) {
                 visitData = await req.config.leadVisit.findAll({
                     where: {
-                        ...whereClause, ...statusClause, 
+                        ...whereClause, ...statusClause,
                     },
                     include: [
                         {
@@ -478,7 +478,7 @@ exports.getleadsVisit = async (req, res) => {
                     ],
                     order: [["visit_id", "DESC"]]
                 });
-            }else {
+            } else {
                 visitData = await req.config.leadVisit.findAll({
                     where: {
                         ...whereClause, ...statusClause
