@@ -33,19 +33,33 @@ exports.storeChannelLead = async (req, res) => {
         let { lead_name, email_id, p_contact_no, address, pincode, p_visit_date, p_visit_time, project_id, project_name, created_on, updated_on } = req.body;
         let leadData;
 
-        if (!p_contact_no || p_contact_no == "" || Number(p_contact_no) == NaN) {
-            p_contact_no = null
+        if (!p_contact_no || p_contact_no.trim() === "" || isNaN(Number(p_contact_no))) {
+            p_contact_no = null;
         }
 
+        // leadData = await req.config.leads.findOne({
+        //     where: {
+        //         sales_project_id: project_id,
+        //         [Op.or]: [
+        //             { email_id: email_id }, { p_contact_no: p_contact_no }
+        //         ]
+        //     }
+        // });
+
         // Check for duplicate lead based on email, contact number, visit date, and visit time
-        leadData = await req.config.leads.findOne({
-            where: {
-                sales_project_id: project_id,
-                [Op.or]: [
-                    { email_id: email_id }, { p_contact_no: p_contact_no }
-                ]
-            }
-        });
+        const whereCondition = {
+            sales_project_id: project_id,
+            [Op.or]: [
+                { email_id: email_id }
+            ]
+        };
+
+        // Only add phone number condition if it's NOT null
+        if (p_contact_no !== null) {
+            whereCondition[Op.or].push({ p_contact_no: p_contact_no });
+        }   
+
+        leadData = await req.config.leads.findOne({ where: whereCondition });
 
         // If duplicate lead found, return an error response
         if (leadData) {
@@ -200,7 +214,7 @@ exports.getleads = async (req, res) => {
         if (!req.query.lead_id) {
             if (req.user.role_id === 2) {
                 leadData = await req.config.leads.findAll({
-                    where: {...whereClause},
+                    where: { ...whereClause },
                     include: [
                         {
                             model: req.config.leadStages,
@@ -239,7 +253,7 @@ exports.getleads = async (req, res) => {
                     ],
                     order: [["lead_id", "DESC"]],
                 })
-            }else if  (req.user.role_id === 3) {
+            } else if (req.user.role_id === 3) {
 
                 const getUserHierarchyQuery = `
                     WITH RECURSIVE user_hierarchy AS (
@@ -303,7 +317,7 @@ exports.getleads = async (req, res) => {
                     ],
                     order: [["lead_id", "DESC"]],
                 })
-            }else {
+            } else {
                 leadData = await req.config.leads.findAll({
                     where: {
                         ...whereClause,
@@ -385,7 +399,7 @@ exports.editleads = async (req, res) => {
         if (!p_contact_no || p_contact_no == "" || Number(p_contact_no) == NaN) {
             p_contact_no = null
         }
-        
+
         let leadData = await req.config.leads.findByPk(lead_id)
         if (!leadData) return await responseError(req, res, "no lead existed")
 

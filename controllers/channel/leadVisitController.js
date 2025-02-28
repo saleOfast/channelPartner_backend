@@ -134,7 +134,7 @@ exports.createLeadVisit = async (req, res) => {
 
                 let salesforceData_Leads = JSON.stringify({
                     "Clead_Full_Name__c": visitData.lead_name || "",
-                    "Cell_Phone__c": visitData.p_contact_no || "",
+                    "Cell_Phone__c": visitData.p_contact_no || "0000000000",
                     "CP_User_Name__c": req.user.user || "",
                     "Email__c": visitData.email_id || "",
                     "Pin_Code__c": visitData.pincode || "",
