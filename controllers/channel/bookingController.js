@@ -20,15 +20,15 @@ function getCurrentWeekEndDate() {
     endDate.setDate(endDate.getDate() + diff);
     return endDate.toISOString().split('T')[0]; // Format as yyyy-mm-dd
 }
-async function updateBookingStatuses(req, bookingData, currentDateTime) { 
+async function updateBookingStatuses(req, bookingData, currentDateTime) {
     // Filter booking records that are eligible for update
     const bookingIdsToUpdate = bookingData
-        .filter(d => { 
-            const bookingDateTime = moment(`${d.BookingleadData.p_visit_date} ${d.BookingleadData.p_visit_time}`); 
+        .filter(d => {
+            const bookingDateTime = moment(`${d.BookingleadData.p_visit_date} ${d.BookingleadData.p_visit_time}`);
             const daysSinceVisit = currentDateTime.diff(bookingDateTime, 'days');
             return daysSinceVisit > 90 && d.status === 'Eligible for brokerage bill';
         })
-        .map(d => d.booking_id); 
+        .map(d => d.booking_id);
 
     if (bookingIdsToUpdate.length > 0) {
         try {
@@ -47,7 +47,7 @@ async function updateBookingStatuses(req, bookingData, currentDateTime) {
 
 exports.getleadBooking = async (req, res) => {
     try {
-        let bookingData;
+        let bookingData = [];
         let whereClause = {};
         let whereAdminClause = {};
         let owner = {}
@@ -142,7 +142,7 @@ exports.getleadBooking = async (req, res) => {
                     ],
                     order: [["booking_id", "DESC"]],
                 })
-            }else if (req.user.role_id === 2) {
+            } else if (req.user.role_id === 2) {
                 bookingData = await req.config.leadBooking.findAll({
                     where: {
                         ...whereClause,
@@ -188,7 +188,7 @@ exports.getleadBooking = async (req, res) => {
                     ],
                     order: [["booking_id", "DESC"]],
                 })
-            }else {
+            } else {
                 bookingData = await req.config.leadBooking.findAll({
                     where: {
                         ...whereClause,
@@ -235,7 +235,7 @@ exports.getleadBooking = async (req, res) => {
             }
 
         } else {
-            bookingData = await req.config.leadBooking.findByPk(req.query.booking_id, {
+            data = await req.config.leadBooking.findByPk(req.query.booking_id, {
                 include: [
                     {
                         model: req.config.leads,
@@ -265,6 +265,7 @@ exports.getleadBooking = async (req, res) => {
 
                 ],
             })
+            bookingData.push(data)
         }
         const currentDateTime = moment();
         await updateBookingStatuses(req, bookingData, currentDateTime);
