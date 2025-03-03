@@ -235,7 +235,7 @@ exports.getleadBooking = async (req, res) => {
             }
 
         } else {
-            data = await req.config.leadBooking.findByPk(req.query.booking_id, {
+            bookingData = await req.config.leadBooking.findByPk(req.query.booking_id, {
                 include: [
                     {
                         model: req.config.leads,
@@ -265,7 +265,7 @@ exports.getleadBooking = async (req, res) => {
 
                 ],
             })
-            bookingData.push(data)
+            return await responseSuccess(req, res, "Booking data", bookingData)
         }
         const currentDateTime = moment();
         await updateBookingStatuses(req, bookingData, currentDateTime);
