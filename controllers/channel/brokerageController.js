@@ -384,7 +384,3 @@ exports.editleadsBrokerage = async (req, res) => {
         return await responseError(req, res, "brokerage updated failed")
     }
 }
-
-
-
-
