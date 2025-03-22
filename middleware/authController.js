@@ -87,7 +87,7 @@ exports.rolePermission = async (req, res, next,) => {
         else {
             // for admin permission
             if (req.user.isDB == true) {
-                console.log(req.headers,"=======>>req.headers.m_id ")
+                console.log(req.headers,"=======>>req.headers.m_id")
                 // if no menu id then respond with not authorised
                 if (!req.headers.m_id || !req.headers.M_id) {
                     return responseError(req, res, "not authorised")
