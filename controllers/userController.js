@@ -932,12 +932,17 @@ exports.getUsersByRoleID = async (req, res) => {
     try {
         let whereClause = {}
         if (req.query.f_date) {
-            whereClause.createdAt = {
-                [Op.gte]: req.query.f_date, // Greater than or equal to current date at midnight
-                [Op.lte]: req.query.t_date // Less than current date + 1 day at midnight
-            }
+            let startDate = new Date(req.query.f_date); // Start Date (00:00:00)
+            let endDate = new Date(req.query.t_date);   // End Date (00:00:00 by default)
 
-        } else {
+            // Extend end date to include the entire day (23:59:59.999)
+            endDate.setHours(23, 59, 59, 999);
+            whereClause.createdAt = {
+                [Op.gte]: startDate, // Start of the day
+                [Op.lte]: endDate   // End of the day
+            };
+        }
+        else {
             let weekStartDate = getCurrentWeekStartDate();
             let weekEndDate = getCurrentWeekEndDate();
             whereClause.createdAt = {
