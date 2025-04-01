@@ -934,7 +934,7 @@ exports.getUsersByRoleID = async (req, res) => {
         if (req.query.f_date) {
             whereClause.createdAt = {
                 [Op.gte]: req.query.f_date, // Greater than or equal to current date at midnight
-                [Op.lt]: req.query.t_date// Less than current date + 1 day at midnight
+                [Op.lte]: req.query.t_date // Less than current date + 1 day at midnight
             }
 
         } else {
