@@ -370,10 +370,13 @@ exports.getleadsVisit = async (req, res) => {
             statusClause.status = decodeURIComponent(req.query.status_id)
         }
         if (req.query.f_date) {
+            let startDate = new Date(req.query.f_date); // Start Date (00:00:00)
+            let endDate = new Date(req.query.t_date);   // End Date (00:00:00 by default)
+            endDate.setDate(endDate.getDate() + 1);
             whereClause.createdAt = {
-                [Op.gte]: req.query.f_date, // Greater than or equal to current date at midnight
-                [Op.lt]: req.query.t_date// Less than current date + 1 day at midnight
-            }
+                [Op.gte]: startDate,  // Start from f_date 00:00:00
+                [Op.lt]: endDate      // Less than (but not including) next day's 00:00:00
+            };
         } else {
             let weekStartDate = getCurrentWeekStartDate();
             let weekEndDate = getCurrentWeekEndDate();

@@ -114,9 +114,10 @@ exports.addChannelPartnerLead = async (req, res) => {
 
 exports.getChannelPartnerLeads = async (req, res) => {
     try {
-        const { db_name, cpl_id, bst_id, f_date, t_date, status_id } = req.query;
+        let { db_name, cpl_id, bst_id, f_date, t_date, status_id } = req.query;
         let leads;
-
+        t_date = new Date(req.query.t_date);   // End Date (00:00:00 by default)
+        t_date.setDate(t_date.getDate() + 1);
         if (!db_name) {
             return await responseError(req, res, "Client Database Name is Required");
         }
@@ -146,13 +147,13 @@ exports.getChannelPartnerLeads = async (req, res) => {
             WHERE users.report_to = :user_id
           `;
 
-          const reportingManagers = await db.sequelize.query(getReportingManagers, {
-              replacements: { user_id: req.user.user_id },
-              type: db.sequelize.QueryTypes.SELECT
-          });
+            const reportingManagers = await db.sequelize.query(getReportingManagers, {
+                replacements: { user_id: req.user.user_id },
+                type: db.sequelize.QueryTypes.SELECT
+            });
 
-          const reportingManagerIds = reportingManagers.map(user => user.user_id);
-          reportingManagerIds.push(req.user.user_id); 
+            const reportingManagerIds = reportingManagers.map(user => user.user_id);
+            reportingManagerIds.push(req.user.user_id);
 
             const getReportingUsersQuery = `
               SELECT users.user_id, users.user
