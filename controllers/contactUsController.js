@@ -116,8 +116,11 @@ exports.getChannelPartnerLeads = async (req, res) => {
     try {
         let { db_name, cpl_id, bst_id, f_date, t_date, status_id } = req.query;
         let leads;
-        t_date = new Date(req.query.t_date);   // End Date (00:00:00 by default)
-        t_date.setDate(t_date.getDate() + 1);
+        if (t_date) {
+            t_date = new Date(req.query.t_date);   // End Date (00:00:00 by default)
+            t_date = new Date(t_date.setDate(t_date.getDate() + 1));
+        }
+        console.log("t_date====>>", t_date)
         if (!db_name) {
             return await responseError(req, res, "Client Database Name is Required");
         }
