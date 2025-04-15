@@ -299,6 +299,11 @@ module.exports = (sequelize, DataTypes) => {
                 allowNull: true,
             },
 
+            onboarding_date: {
+                type: DataTypes.DATE,
+                allowNull: true,
+            },
+
             mailSent: {
                 type: DataTypes.BOOLEAN,
                 allowNull: true,
