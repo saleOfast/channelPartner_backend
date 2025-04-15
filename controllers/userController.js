@@ -977,7 +977,7 @@ exports.getUsersByRoleID = async (req, res) => {
                 role_id: req.query.role_id,
                 doc_verification: 2,
             },
-            attributes: ["user_id", "user", "user_code", "createdAt", "report_to", "organisation", "user_l_name", "email", "contact_number", "organisation", "db_name", "isDB", "user_status", "doc_verification", "reject_reason", "role_id", "address", "pincode", "cpt_id",
+            attributes: ["user_id", "user", "user_code", "createdAt", "report_to", "organisation", "user_l_name", "email", "contact_number", "organisation", "db_name", "isDB", "user_status", "doc_verification", "reject_reason", "role_id", "address", "pincode", "cpt_id", "onboarding_date",
                 [req.config.sequelize.fn('COUNT', req.config.sequelize.fn('DISTINCT', req.config.sequelize.col('db_leads.lead_id'))), 'lead_count'],
                 [req.config.sequelize.fn('COUNT', req.config.sequelize.fn('DISTINCT', req.config.sequelize.col('db_leads->visitList.visit_id'))), 'visit_count'],
                 [req.config.sequelize.fn('COUNT', req.config.sequelize.fn('DISTINCT', req.config.sequelize.col('db_leads->BookingLeadList.booking_id'))), 'booking_count'],
@@ -1747,7 +1747,8 @@ const handleAcceptProcess = async (req, userData, dbUserData) => {
         message = `The Channel Partner's request has been accepted by both BST and Director.`;
     }
 
-    let data = await userDataInDB.update(dbUserData);
+    const newDate = new Date();
+    let data = await userDataInDB.update({ ...dbUserData, onboarding_date: newDate });
 
     if (data && dbUserData.doc_verification == 2) {
         let userExistInCPLeads = await req.config.channelPartnerLeads.findOne({
