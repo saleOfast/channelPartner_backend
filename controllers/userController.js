@@ -938,7 +938,11 @@ exports.getUsersByRoleID = async (req, res) => {
             endDate.setDate(endDate.getDate() + 1);
             whereClause.createdAt = {
                 [Op.gte]: startDate,  // Start from f_date 00:00:00
-                [Op.lt]: endDate      // Less than (but not including) next day's 00:00:00
+                [Op.lte]: endDate      // Less than (but not including) next day's 00:00:00
+            };
+            whereClause.onboarding_date = {
+                [Op.gte]: startDate,  // Start from f_date 00:00:00
+                [Op.lte]: endDate      // Less than (but not including) next day's 00:00:00
             };
         }
         else {
@@ -946,8 +950,12 @@ exports.getUsersByRoleID = async (req, res) => {
             let weekEndDate = getCurrentWeekEndDate();
             whereClause.createdAt = {
                 [Op.gte]: weekStartDate, // Greater than or equal to current date at midnight
-                [Op.lt]: weekEndDate// Less than current date + 1 day at midnight
+                [Op.lte]: weekEndDate// Less than current date + 1 day at midnight
             }
+            whereClause.onboarding_date = {
+                [Op.gte]: startDate,  // Start from f_date 00:00:00
+                [Op.lte]: endDate      // Less than (but not including) next day's 00:00:00
+            };
         }
 
         if (req.user.role_id == 2 || req.user.role_id == 3) {
