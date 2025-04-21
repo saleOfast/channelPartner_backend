@@ -1061,7 +1061,7 @@ exports.getUsersByRoleID = async (req, res) => {
                 },
             ],
             group: ['user_id'],
-            order: [[req.config.sequelize.literal('"sortingDate"'), 'ASC']],
+            order: [[req.config.sequelize.literal('"sortingDate"'), 'DESC']],
         });
 
         const result = await req.config.channelPartnerLeads.findAll({
