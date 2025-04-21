@@ -978,10 +978,10 @@ exports.getUsersByRoleID = async (req, res) => {
                 doc_verification: 2,
             },
             attributes: ["user_id", "user", "user_code", "createdAt", "report_to", "organisation", "user_l_name", "email", "contact_number", "organisation", "db_name", "isDB", "user_status", "doc_verification", "reject_reason", "role_id", "address", "pincode", "cpt_id", "onboarding_date",
-                [req.config.sequelize.literal(`CASE 
-                    WHEN "onboarding_date" IS NOT NULL THEN "onboarding_date"
-                    ELSE "createdAt"
-                END`), 'sortingDate'],
+                // [req.config.sequelize.literal(`CASE 
+                //     WHEN "onboarding_date" IS NOT NULL THEN "onboarding_date"
+                //     ELSE "createdAt"
+                // END`), 'sortingDate'],
                 [req.config.sequelize.fn('COUNT', req.config.sequelize.fn('DISTINCT', req.config.sequelize.col('db_leads.lead_id'))), 'lead_count'],
                 [req.config.sequelize.fn('COUNT', req.config.sequelize.fn('DISTINCT', req.config.sequelize.col('db_leads->visitList.visit_id'))), 'visit_count'],
                 [req.config.sequelize.fn('COUNT', req.config.sequelize.fn('DISTINCT', req.config.sequelize.col('db_leads->BookingLeadList.booking_id'))), 'booking_count'],
@@ -1078,9 +1078,10 @@ exports.getUsersByRoleID = async (req, res) => {
 
         userData = userData.map((user) => {
             const cp_lead_count = resultMap.get(user.user_id) || 0;
-            return { ...user.dataValues, cp_lead_count };
+            const sortingDate = user.dataValues.onboarding_date || user.dataValues.createdAt
+            return { ...user.dataValues, cp_lead_count, sortingDate };
         });
-
+        userData.sort((a, b) => new Date(b.sortingDate) - new Date(a.sortingDate));
         return await responseSuccess(req, res, "Role wise Data", userData);
     } catch (error) {
         logErrorToFile(error)
