@@ -978,6 +978,10 @@ exports.getUsersByRoleID = async (req, res) => {
                 doc_verification: 2,
             },
             attributes: ["user_id", "user", "user_code", "createdAt", "report_to", "organisation", "user_l_name", "email", "contact_number", "organisation", "db_name", "isDB", "user_status", "doc_verification", "reject_reason", "role_id", "address", "pincode", "cpt_id", "onboarding_date",
+                [req.config.sequelize.literal(`CASE 
+                    WHEN "db_users"."onboarding_date" IS NOT NULL THEN "db_users"."onboarding_date"
+                    ELSE "db_users"."createdAt"
+                END`), 'sortingDate'],
                 [req.config.sequelize.fn('COUNT', req.config.sequelize.fn('DISTINCT', req.config.sequelize.col('db_leads.lead_id'))), 'lead_count'],
                 [req.config.sequelize.fn('COUNT', req.config.sequelize.fn('DISTINCT', req.config.sequelize.col('db_leads->visitList.visit_id'))), 'visit_count'],
                 [req.config.sequelize.fn('COUNT', req.config.sequelize.fn('DISTINCT', req.config.sequelize.col('db_leads->BookingLeadList.booking_id'))), 'booking_count'],
@@ -1057,7 +1061,7 @@ exports.getUsersByRoleID = async (req, res) => {
                 },
             ],
             group: ['user_id'],
-            order: [["user_id", "DESC"]],
+            order: [[req.config.sequelize.literal('"sortingDate"'), 'DESC']],
         });
 
         const result = await req.config.channelPartnerLeads.findAll({
