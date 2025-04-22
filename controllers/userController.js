@@ -953,8 +953,8 @@ exports.getUsersByRoleID = async (req, res) => {
                 [Op.lte]: weekEndDate// Less than current date + 1 day at midnight
             }
             whereClause.onboarding_date = {
-                [Op.gte]: startDate,  // Start from f_date 00:00:00
-                [Op.lte]: endDate      // Less than (but not including) next day's 00:00:00
+                [Op.gte]: weekStartDate,  // Start from f_date 00:00:00
+                [Op.lte]: weekEndDate      // Less than (but not including) next day's 00:00:00
             };
         }
 
