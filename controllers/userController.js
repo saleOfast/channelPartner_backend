@@ -934,28 +934,58 @@ exports.getUsersByRoleID = async (req, res) => {
         if (req.query.f_date) {
             let startDate = new Date(req.query.f_date); // Start Date (00:00:00)
             let endDate = new Date(req.query.t_date);   // End Date (00:00:00 by default)
-
             endDate.setDate(endDate.getDate() + 1);
-            whereClause.createdAt = {
-                [Op.gte]: startDate,  // Start from f_date 00:00:00
-                [Op.lte]: endDate      // Less than (but not including) next day's 00:00:00
-            };
-            whereClause.onboarding_date = {
-                [Op.gte]: startDate,  // Start from f_date 00:00:00
-                [Op.lte]: endDate      // Less than (but not including) next day's 00:00:00
-            };
+
+            whereClause[Op.or] = [
+                {
+                    createdAt: {
+                        [Op.gte]: startDate,
+                        [Op.lte]: endDate
+                    }
+                },
+                {
+                    onboarding_date: {
+                        [Op.gte]: startDate,
+                        [Op.lte]: endDate
+                    }
+                }
+            ];
+
+            // whereClause.createdAt = {
+            //     [Op.gte]: startDate,  // Start from f_date 00:00:00
+            //     [Op.lte]: endDate      // Less than (but not including) next day's 00:00:00
+            // };
+            // whereClause.onboarding_date = {
+            //     [Op.gte]: startDate,  // Start from f_date 00:00:00
+            //     [Op.lte]: endDate      // Less than (but not including) next day's 00:00:00
+            // };
         }
         else {
             let weekStartDate = getCurrentWeekStartDate();
             let weekEndDate = getCurrentWeekEndDate();
-            whereClause.createdAt = {
-                [Op.gte]: weekStartDate, // Greater than or equal to current date at midnight
-                [Op.lte]: weekEndDate// Less than current date + 1 day at midnight
-            }
-            whereClause.onboarding_date = {
-                [Op.gte]: weekStartDate,  // Start from f_date 00:00:00
-                [Op.lte]: weekEndDate      // Less than (but not including) next day's 00:00:00
-            };
+            whereClause[Op.or] = [
+                {
+                    createdAt: {
+                        [Op.gte]: weekStartDate,
+                        [Op.lte]: weekEndDate
+                    }
+                },
+                {
+                    onboarding_date: {
+                        [Op.gte]: weekStartDate,
+                        [Op.lte]: weekEndDate
+                    }
+                }
+            ];
+
+            // whereClause.createdAt = {
+            //     [Op.gte]: weekStartDate, // Greater than or equal to current date at midnight
+            //     [Op.lte]: weekEndDate// Less than current date + 1 day at midnight
+            // }
+            // whereClause.onboarding_date = {
+            //     [Op.gte]: weekStartDate,  // Start from f_date 00:00:00
+            //     [Op.lte]: weekEndDate      // Less than (but not including) next day's 00:00:00
+            // };
         }
 
         if (req.user.role_id == 2 || req.user.role_id == 3) {
