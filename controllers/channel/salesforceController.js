@@ -15,7 +15,9 @@ exports.tokenGenration = async (req, res) => {
                 client_url: host_name
             },
         });
-
+        if (!hostData) {
+            return res.status(400).json({ status: 400, message: "invalid host_name", data: null });
+        }
         const user = await db.sequelize.query(`
             SELECT * FROM ${hostData.db_name}.db_users
             WHERE user_code = '${hostData.user_code}'
