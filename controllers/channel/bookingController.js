@@ -49,14 +49,12 @@ exports.getleadBooking = async (req, res) => {
     try {
         let bookingData = [];
         let whereClause = {};
-        let whereAdminClause = {};
         let owner = {}
-        if (req.query.cp_id) {
-            owner = { lead_owner: decodeURIComponent(req.query.cp_id) }
+        if (!req.user.isDB) {
+            owner = { lead_owner: req.user.user_id }
         }
         if (req.query.status_id) {
             whereClause.status = decodeURIComponent(req.query.status_id)
-            whereAdminClause.status = decodeURIComponent(req.query.status_id)
         }
         if (req.query.f_date) {
             let startDate = new Date(req.query.f_date); // Start Date (00:00:00)
@@ -74,10 +72,6 @@ exports.getleadBooking = async (req, res) => {
                 [Op.gte]: weekStartDate, // Greater than or equal to current date at midnight
                 [Op.lt]: weekEndDate// Less than current date + 1 day at midnight
             }
-        }
-
-        if (req.user.role_id !== null && req.user.role_id !== 3 && req.user.role_id !== 2) {
-            whereAdminClause.lead_owner = req.user.user_id
         }
         if (!req.query.booking_id) {
             if (req.user.role_id === 3) {
