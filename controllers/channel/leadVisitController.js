@@ -81,52 +81,17 @@ exports.createLeadVisit = async (req, res) => {
         if (!visitData) return await responseError(req, res, "No visit found!");
 
         // Get the last visit for the lead
-        const lastVisit = await req.config.leadVisit.findOne({
+        const lastVisitArr = await req.config.leadVisit.findAll({
             where: { lead_id: lead_id },
-            order: [["lead_id", "DESC"]],
+            order: [["createdAt", "DESC"]],
             limit: 1,
         });
-
+        const lastVisit = lastVisitArr[0];
         // Count total visits (including soft-deleted ones)
         const visitCount = await req.config.leadVisit.count({ paranoid: false });
 
         // If no previous visit, proceed to create a new visit
         if (!lastVisit) {
-            // Function to fetch Salesforce access token
-            // const fetchAccessToken = async (retries = 3) => {
-            //     const fetch = (await import('node-fetch')).default;
-            //     const url = `${req.admin?.host_name || process.env.CLIENT_TOKEN_URL}`;
-            //     const params = new URLSearchParams({
-            //         grant_type: req.admin?.grant_type || process.env.GRANTTYPE,
-            //         client_id: req.admin?.salesforce_client_id || process.env.SALESFORCE_CLIENT_ID,
-            //         client_secret: req.admin?.salesforce_client_pwd || process.env.SALESFORCE_CLIENT_PWD
-            //     });
-
-            //     const requestOptions = {
-            //         method: "POST",
-            //         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            //         body: params.toString(),
-            //         redirect: "follow",
-            //     };
-
-            //     for (let attempt = 1; attempt <= retries; attempt++) {
-            //         try {
-            //             const response = await fetch(url, requestOptions);
-            //             if (!response.ok) {
-            //                 throw new Error(`HTTP error! Status: ${response.status}`);
-            //             }
-            //             return await response.json(); // Assuming the response is JSON
-            //         } catch (error) {
-            //             logErrorToFile(error);
-            //             if (attempt < retries) {
-            //                 console.log(`Retry attempt ${attempt} failed. Retrying...`);
-            //                 await new Promise((resolve) => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
-            //             } else {
-            //                 throw error;
-            //             }
-            //         }
-            //     }
-            // };
 
             const tokenResponse = await fetchAccessToken(req);
 
@@ -236,31 +201,39 @@ exports.createLeadVisit = async (req, res) => {
                 return await responseError(req, res, "Cannot request visit. Last visit completed within 90 days");
             }
 
-            // Check if the last visit was requested within the last 24 hours
-            const dateTime = new Date(lastVisit.createdAt);
-            dateTime.setHours(dateTime.getHours() + 24);
-            if (lastVisit.status !== 'Completed' && dateTime > new Date(current_date)) {
+            const createdAt = new Date(lastVisit.createdAt);
+            const expiryTime = new Date(createdAt.getTime() + 24 * 60 * 60 * 1000); // Adds 24 hours in ms
+
+            const isWithin24Hours = expiryTime >= new Date();
+            const isNotCompleted = lastVisit.status !== 'Completed';
+
+            console.log("lastVisit.createdAt", lastVisit.createdAt);
+            console.log("expiryTime", expiryTime);
+            console.log("isWithin24Hours", isWithin24Hours);
+            console.log("isNotCompleted", isNotCompleted);
+
+            if (isNotCompleted && isWithin24Hours) {
                 return await responseError(req, res, "Cannot request visit. Last visit requested within 24 hours");
             }
 
             // Create a new visit in the local database
-            const newVisit = await req.config.leadVisit.create({
-                lead_id,
-                p_visit_date,
-                p_visit_time,
-                visit_code: `${req.admin?.user.charAt(0).toUpperCase()}${req.admin?.user_l_name ? req.admin?.user_l_name.charAt(0).toUpperCase() : ''}V_${zeroPad(visitCount + 1, 5)}`
-            });
+            // const newVisit = await req.config.leadVisit.create({
+            //     lead_id,
+            //     p_visit_date,
+            //     p_visit_time,
+            //     visit_code: `${req.admin?.user.charAt(0).toUpperCase()}${req.admin?.user_l_name ? req.admin?.user_l_name.charAt(0).toUpperCase() : ''}V_${zeroPad(visitCount + 1, 5)}`
+            // });
 
             // After creating visit, update lead stage
             await visitData.update({ lead_stg_id: 2 });
 
-            const createVisitHistory = await req.config.revisitLeadsVisits.create({
-                visit_id: newVisit.visit_id,
-                revisit_date: p_visit_date,
-                revisit_time: p_visit_time,
-                lead_id: lead_id,
-                remarks
-            })
+            // const createVisitHistory = await req.config.revisitLeadsVisits.create({
+            //     visit_id: newVisit.visit_id,
+            //     revisit_date: p_visit_date,
+            //     revisit_time: p_visit_time,
+            //     lead_id: lead_id,
+            //     remarks
+            // })
 
             const tokenResponse = await fetchAccessToken(req);
 
@@ -307,13 +280,21 @@ exports.createLeadVisit = async (req, res) => {
                                 sales_visit_id,
                                 visit_code: `${req.admin?.user.charAt(0).toUpperCase()}${req.admin?.user_l_name ? req.admin?.user_l_name.charAt(0).toUpperCase() : ''}V_${zeroPad(visitCount + 1, 5)} `,
                             })
-                            .then(async (visitData) => {
-                                console.log("Visit created successfully", visitData)
-                                // return await responseSuccess(req, res, "Visit created successfully", visitData);
+                            .then(async (newVisit) => {
+                                console.log("Visit created successfully", newVisit)
+                                // After creating visit, update lead stage
+                                await visitData.update({ lead_stg_id: 2 });
+
+                                const createVisitHistory = await req.config.revisitLeadsVisits.create({
+                                    visit_id: newVisit.visit_id,
+                                    revisit_date: p_visit_date,
+                                    revisit_time: p_visit_time,
+                                    lead_id: lead_id,
+                                    remarks
+                                })
                             })
                             .catch((error) => {
                                 console.error("Something went wrong while creating the lead", error);
-                                // return responseError(req, res, "Something went wrong while creating the lead");
                             });
                     })
                     .catch((error) => {
@@ -325,7 +306,7 @@ exports.createLeadVisit = async (req, res) => {
                 return await responseError(req, res, "Token generation failed", tokenResponse);
             }
 
-            return await responseSuccess(req, res, "Visit requested successfully", newVisit);
+            return await responseSuccess(req, res, "Visit requested successfully");
         }
     } catch (error) {
         logErrorToFile(error);
