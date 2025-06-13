@@ -1731,8 +1731,8 @@ exports.updateUser = async (req, res) => {
                 where: { user_id: dbUserData.report_to },
             });
             message = assignedUser
-                ? `The Channel Partner's request has been successfully assigned to ${assignedUser.user} ${assignedUser.user_l_name || ''}`
-                : `The Channel Partner's request has been successfully.`;
+                ? `The Channel Partner has been successfully assigned to ${assignedUser.user} ${assignedUser.user_l_name || ''}`
+                : `The Channel Partner's request has been successfully assigned.`;
         }
 
         // Update user profile
