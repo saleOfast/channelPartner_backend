@@ -660,8 +660,8 @@ exports.resolver = async (req, res, next) => {
 
         /* ------------------- CHANNEL WORK Ended ---------------------------- */
 
-        Userdb.users.hasOne(Userdb.channelPartnerType, { foreignKey: 'cpt_id' })
-        Userdb.channelPartnerType.belongsTo(Userdb.users, { foreignKey: 'cpt_id' })
+        Userdb.channelPartnerType.hasMany(Userdb.users, { foreignKey: 'cpt_id' })
+        Userdb.users.belongsTo(Userdb.channelPartnerType, { foreignKey: 'cpt_id' })
 
         Userdb.opportunities.hasMany(Userdb.opportunityField, { foreignKey: 'opportunity' })
         Userdb.opportunityField.belongsTo(Userdb.opportunities, { foreignKey: 'opportunity' })

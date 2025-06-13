@@ -1055,6 +1055,12 @@ exports.getUsersByRoleID = async (req, res) => {
                     },
                 },
                 {
+                    model: req.config.channelPartnerType,
+                    attributes: {
+                        exclude: ["createdAt", "updatedAt", "deletedAt"],
+                    },
+                },
+                {
                     model: req.config.country,
                     attributes: {
                         exclude: ["createdAt", "updatedAt", "deletedAt"],
