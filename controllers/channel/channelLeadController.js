@@ -37,14 +37,7 @@ exports.storeChannelLead = async (req, res) => {
             p_contact_no = null;
         }
 
-        // leadData = await req.config.leads.findOne({
-        //     where: {
-        //         sales_project_id: project_id,
-        //         [Op.or]: [
-        //             { email_id: email_id }, { p_contact_no: p_contact_no }
-        //         ]
-        //     }
-        // });
+        const ninetyDaysAgo = moment().subtract(90, 'days').toDate();
 
         // Check for duplicate lead based on email, contact number, visit date, and visit time
         const whereCondition = {
@@ -59,11 +52,23 @@ exports.storeChannelLead = async (req, res) => {
             whereCondition[Op.or].push({ p_contact_no: p_contact_no });
         }
 
-        leadData = await req.config.leads.findOne({ where: whereCondition });
+        leadData = await req.config.leads.findOne({
+            where: whereCondition,
+            order: [['createdAt', 'DESC']]
+        });
 
-        // If duplicate lead found, return an error response
+
+        // Block if lead exists AND is less than 90 days old
         if (leadData) {
-            return await responseError(req, res, "Lead already exists with this email or phone.");
+            const createdAt = moment(leadData.createdAt);
+
+            if (createdAt.isAfter(ninetyDaysAgo)) {
+                // Lead is within 90 days — block creation
+                return await responseError(req, res, "Lead already exists with this email or phone within the last 90 days.");
+            } else if (leadData.lead_stg_id === 1) {
+                // Lead is old AND in stage 1 — update to stage 5 (Closed - Lost)
+                await leadData.update({ lead_stg_id: 5 });
+            }
         }
 
         // Count the total number of leads (including soft-deleted ones)
@@ -91,89 +96,6 @@ exports.storeChannelLead = async (req, res) => {
 
         leadData = await req.config.leads.create(body)
         return await responseSuccess(req, res, "Lead created successfully", leadData);
-
-        // const fetchAccessToken = async (retries = 3) => {
-        //     const fetch = (await import('node-fetch')).default;
-        //     const url = `${req.admin.host_name || process.env.CLIENT_TOKEN_URL}`;
-        //     const params = new URLSearchParams({
-        //         grant_type: req.admin.grant_type || process.env.GRANTTYPE,
-        //         client_id: req.admin.salesforce_client_id || process.env.SALESFORCE_CLIENT_ID,
-        //         client_secret: req.admin.salesforce_client_pwd || process.env.SALESFORCE_CLIENT_PWD
-        //     });
-
-        //     const requestOptions = {
-        //         method: "POST",
-        //         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        //         body: params.toString(),
-        //         redirect: "follow"
-        //     };
-
-        //     for (let attempt = 1; attempt <= retries; attempt++) {
-        //         try {
-        //             const response = await fetch(url, requestOptions);
-        //             if (!response.ok) {
-        //                 throw new Error(`HTTP error! Status: ${response.status}`);
-        //             }
-        //             return await response.json(); // Assuming the response is JSON
-        //         } catch (error) {
-        //             logErrorToFile(error)
-        //             if (attempt < retries) {
-        //                 console.log(`Retry attempt ${attempt} failed. Retrying...`);
-        //                 await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
-        //             } else {
-        //                 throw error;
-        //             }
-        //         }
-        //     }
-        // };
-
-        // const tokenResponse = await fetchAccessToken();
-        // // Prepare lead data for Salesforce
-
-        // if (tokenResponse && tokenResponse.access_token) {
-
-        //     let salesforceData = JSON.stringify({
-        //         "Clead_Full_Name__c": lead_name,
-        //         "Cell_Phone__c": p_contact_no,
-        //         "CP_User_Name__c": req.user.user,
-        //         "Email__c": email_id,
-        //         "Pin_Code__c": pincode,
-        //         "Location__c": address,
-        //         "Requirement_Type__c": "Residential",
-        //         "Country_pklst__c": "India",
-        //         "Registration_Type_pklst__c": "Phone Call",
-        //         "Selected_Project_rltn__c": project_id,
-        //         "Is_Created_By_Channel_Partner__c": "true"
-        //     });
-
-        //     // Configure Salesforce lead creation request
-        //     let leadConfig = {
-        //         method: 'post',
-        //         maxBodyLength: Infinity,
-        //         url: `${req.admin.salesforce_url || process.env.CLIENT_REQ_URL}/sobjects/Clead__c`,
-        //         headers: {
-        //             'Content-Type': 'application/json',
-        //             'Authorization': `Bearer ${tokenResponse.access_token}`,
-        //         },
-        //         data: salesforceData
-        //     };
-
-        //     // Create lead in Salesforce
-        //     axios.request(leadConfig)
-        //         .then((response) => {
-        //             body.sales_lead_id = response.data.id;
-
-        //             // Insert the lead data into the database
-        //             req.config.leads.create(body).then(async (leadData) => {
-        //                 return await responseSuccess(req, res, "Lead created successfully", leadData);
-        //             }).catch((error) => {
-        //                 console.error("Error creating lead:", error);
-        //                 return responseError(req, res, "Something Went Wrong while creating the lead");
-        //             });
-        //         })
-        // } else {
-        //     return await responseError(req, res, "token genration failed", tokenResponse);
-        // }
 
     } catch (error) {
         logErrorToFile(error)
