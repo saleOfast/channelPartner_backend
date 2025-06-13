@@ -591,7 +591,16 @@ exports.getProjectList = async (req, res) => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
                     }
-                    return await response.json();
+                    const result = await response.json();
+                    console.log("Project List Response:", result);
+                    const sortedRecords = result.records.sort((a, b) => {
+                        const nameA = a.Project_Name__c.toUpperCase(); // ignore case
+                        const nameB = b.Project_Name__c.toUpperCase(); // ignore case
+                        return nameA.localeCompare(nameB);
+                    });
+
+                    result.records = sortedRecords;
+                    return result; // Return the sorted records
                 } catch (error) {
                     logErrorToFile(error)
                     if (attempt < retries) {
